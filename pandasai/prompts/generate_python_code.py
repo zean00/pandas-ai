@@ -25,6 +25,7 @@ This is the metadata of the dataframe:
 {df_head}.
 
 When asked about the data, your response should include a python code that describes the dataframe `df`.
+Use plotly library if asked to create data visualization such as chart and histogram, and the code should be finished with outputing to json `data = fig.to_json()`
 Using the provided dataframe, df, return the python code to get the answer to the following question:
 """  # noqa: E501
 

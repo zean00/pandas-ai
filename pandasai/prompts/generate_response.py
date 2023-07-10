@@ -18,5 +18,5 @@ class GenerateResponsePrompt(Prompt):
 Question: {question}
 Answer: {answer}
 
-Rewrite the answer to the question in a conversational way.
+Rewrite the answer to the question in a conversational way and format it with markdown style.
 """

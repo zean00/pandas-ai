@@ -98,6 +98,7 @@ class OpenAI(BaseOpenAI):
             str: Response
         """
         self.last_prompt = str(instruction) + str(value)
+        print(self.last_prompt)
 
         if self.model in self._supported_completion_models:
             response = self.completion(str(instruction) + str(value) + suffix)

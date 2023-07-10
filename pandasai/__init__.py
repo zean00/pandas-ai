@@ -41,6 +41,7 @@ import re
 import sys
 import uuid
 import time
+import json
 from contextlib import redirect_stdout
 from typing import List, Optional, Union, Dict, Type
 import importlib.metadata
@@ -405,11 +406,20 @@ class PandasAI(Shortcuts):
                 use_error_correction_framework=use_error_correction_framework,
             )
             self.code_output = answer
+            #print(answer)
             self.log(f"Answer: {answer}")
+
+            is_json_out = False
+
+            try:
+                json.loads(answer)
+                is_json_out = True
+            except Exception as exception:
+                print(exception)
 
             if is_conversational_answer is None:
                 is_conversational_answer = self._is_conversational_answer
-            if is_conversational_answer:
+            if is_conversational_answer and not is_json_out:
                 answer = self.conversational_answer(prompt, answer)
                 self.log(f"Conversational answer: {answer}")
 
@@ -681,6 +691,10 @@ Code running:
                     code_to_run = self._retry_run_code(code, e, multiple)
 
         captured_output = output.getvalue().strip()
+        
+        if "data" in environment:
+            return environment["data"]
+
         if code.count("print(") > 1:
             return captured_output
 

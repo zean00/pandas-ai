@@ -15,6 +15,7 @@ Today is {today_date}.
 You are provided with the following pandas dataframes:"""
     instruction: str = """
 When asked about the data, your response should include a python code that describes the dataframes provided.
+Use plotly library if asked to create data visualization such as chart and histogram, and the code should be finished with outputing to json `data = fig.to_json()`
 Using the provided dataframes and no other dataframes, return the python code to get the answer to the following question:
 """  # noqa: E501
 

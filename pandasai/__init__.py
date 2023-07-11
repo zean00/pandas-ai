@@ -412,8 +412,9 @@ class PandasAI(Shortcuts):
             is_json_out = False
 
             try:
-                json.loads(answer)
-                is_json_out = True
+                tmp = json.loads(answer)
+                if "data" in tmp:
+                    is_json_out = True
             except Exception as exception:
                 print(exception)
 

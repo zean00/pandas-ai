@@ -14,9 +14,9 @@ class MultipleDataframesPrompt(Prompt):
 Today is {today_date}.
 You are provided with the following pandas dataframes:"""
     instruction: str = """
-When asked about the data, your response should include a python code that describes the dataframes provided.
-Use plotly library if asked to create data visualization such as chart and histogram, and the code should be finished with outputing to json `data = fig.to_json()`
-Using the provided dataframes and no other dataframes, return the python code to get the answer to the following question:
+When asked about the data, your response should include a python code that manipulating the dataframes provided.
+If asked, use plotly library to visualize `output = fig.to_json()` dataframes into chart or histogram.
+Using the pre loaded dataframes and no other dataframes, return the python code to get the answer to the following question:
 """  # noqa: E501
 
     def __init__(self, dataframes: list[pd.DataFrame]):

@@ -24,9 +24,9 @@ You are provided with a pandas dataframe (df) with {num_rows} rows and {num_colu
 This is the metadata of the dataframe:
 {df_head}.
 
-When asked about the data, your response should include a python code that describes the dataframe `df`.
-Use plotly library if asked to create data visualization such as chart and histogram, and the code should be finished with outputing to json `data = fig.to_json()`
-Using the provided dataframe, df, return the python code to get the answer to the following question:
+When asked about the data, your response should include a python code that manipulating the dataframe `df`.
+If asked, use plotly library to visualize `output = fig.to_json()` dataframe into chart or histogram.
+Using pre loaded dataframe `df`, return the python code to get the answer to the following question:
 """  # noqa: E501
 
     def __init__(self, **kwargs):

@@ -83,6 +83,15 @@ def get_version():
 
 __version__ = get_version()
 
+class GenerateResult:
+    df:pd.DataFrame
+    chart:str
+    answer:str
+
+    def __init__(self, df:pd.DataFrame, chart:str = None, answer:str = None):
+        self.df = df
+        self.chart = chart
+        self.answer = answer
 
 class PandasAI(Shortcuts):
     """
@@ -289,7 +298,7 @@ class PandasAI(Shortcuts):
             "generate_response", GenerateResponsePrompt
         )(question=question, answer=answer)
         return self._llm.call(generate_response_instruction, "")
-
+        
     def run(
         self,
         data_frame: Union[pd.DataFrame, List[pd.DataFrame]],
@@ -406,26 +415,145 @@ class PandasAI(Shortcuts):
                 use_error_correction_framework=use_error_correction_framework,
             )
             self.code_output = answer
-            #print(answer)
-            #self.log(f"Answer: {answer}")
-
-            is_json_out = False
-
-            if isinstance(answer, tuple):
-                return answer
-            # try:
-            #     tmp = json.loads(answer)
-            #     if "data" in tmp:
-            #         is_json_out = True
-            # except Exception as exception:
-            #     print(exception)
+            self.log(f"Answer: {answer}")
 
             if is_conversational_answer is None:
                 is_conversational_answer = self._is_conversational_answer
-            if is_conversational_answer and not is_json_out:
+            if is_conversational_answer:
                 answer = self.conversational_answer(prompt, answer)
                 self.log(f"Conversational answer: {answer}")
 
+            self.log(f"Executed in: {time.time() - self._start_time}s")
+
+            return answer
+        except Exception as exception:
+            self.last_error = str(exception)
+            print(exception)
+            return (
+                "Unfortunately, I was not able to answer your question, "
+                "because of the following error:\n"
+                f"\n{exception}\n"
+            )
+    
+    def generate(
+        self,
+        data_frame: Union[pd.DataFrame, List[pd.DataFrame]],
+        prompt: str,
+        show_code: bool = False,
+        anonymize_df: bool = True,
+        use_error_correction_framework: bool = True,
+    ):
+        """
+        Run the PandasAI to make Dataframes Conversational.
+
+        Args:
+            data_frame (Union[pd.DataFrame, List[pd.DataFrame]]): A pandas Dataframe
+            prompt (str): A prompt to query about the Dataframe
+            show_code (bool): To show the intermediate python code generated on the
+            prompt. Default to False
+            anonymize_df (bool): Running the code with Sensitive Data. Default to True
+            use_error_correction_framework (bool): Turn on Error Correction mechanism.
+            Default to True
+
+        Returns (str): Answer to the Input Questions about the DataFrame
+
+        """
+
+        self._start_time = time.time()
+
+        self.log(f"Question: {prompt}")
+        self.log(f"Running PandasAI with {self._llm.type} LLM...")
+
+        self._prompt_id = str(uuid.uuid4())
+        self.log(f"Prompt ID: {self._prompt_id}")
+
+        try:
+            if self._enable_cache and self._cache and self._cache.get(prompt):
+                self.log("Using cached response")
+                code = self._cache.get(prompt)
+            else:
+                rows_to_display = 0 if self._enforce_privacy else 5
+
+                multiple: bool = isinstance(data_frame, list)
+
+                if multiple:
+                    heads = [
+                        anonymize_dataframe_head(dataframe)
+                        if anonymize_df
+                        else dataframe.head(rows_to_display)
+                        for dataframe in data_frame
+                    ]
+
+                    multiple_dataframes_instruction = self._non_default_prompts.get(
+                        "multiple_dataframes", MultipleDataframesPrompt
+                    )
+                    code = self._llm.generate_code(
+                        multiple_dataframes_instruction(dataframes=heads),
+                        prompt,
+                    )
+
+                    self._original_instructions = {
+                        "question": prompt,
+                        "df_head": heads,
+                    }
+
+                else:
+                    df_head = data_frame.head(rows_to_display)
+                    if anonymize_df:
+                        df_head = anonymize_dataframe_head(df_head)
+                    df_head = df_head.to_csv(index=False)
+
+                    generate_code_instruction = self._non_default_prompts.get(
+                        "generate_python_code", GeneratePythonCodePrompt
+                    )(
+                        prompt=prompt,
+                        df_head=df_head,
+                        num_rows=data_frame.shape[0],
+                        num_columns=data_frame.shape[1],
+                    )
+                    code = self._llm.generate_code(
+                        generate_code_instruction,
+                        prompt,
+                    )
+
+                    self._original_instructions = {
+                        "question": prompt,
+                        "df_head": df_head,
+                        "num_rows": data_frame.shape[0],
+                        "num_columns": data_frame.shape[1],
+                    }
+
+                self.last_code_generated = code
+                self.log(
+                    f"""
+                        Code generated:
+                        ```
+                        {code}
+                        ```
+                    """
+                )
+
+                if self._enable_cache and self._cache:
+                    self._cache.set(prompt, code)
+
+            if show_code and self._in_notebook:
+                self.notebook.create_new_cell(code)
+
+            for middleware in self._middlewares:
+                code = middleware(code)
+
+            answer = self.generate_code(
+                code,
+                data_frame,
+                use_error_correction_framework=use_error_correction_framework,
+            )
+            self.code_output = answer.answer
+            
+            if answer.answer is not None:
+                conv_answer = self.conversational_answer(prompt, answer.answer)
+                self.log(f"Conversational answer: {conv_answer}")
+                answer.answer = conv_answer
+            
             self.log(f"Executed in: {time.time() - self._start_time}s")
 
             return answer
@@ -632,6 +760,104 @@ class PandasAI(Shortcuts):
         code: str,
         data_frame: pd.DataFrame,
         use_error_correction_framework: bool = True,
+    ) -> str:
+        """
+        A method to execute the python code generated by LLMs to answer the question
+        about the input dataframe. Run the code in the current context and return the
+        result.
+
+        Args:
+            code (str): A python code to execute
+            data_frame (pd.DataFrame): A full Pandas DataFrame
+            use_error_correction_framework (bool): Turn on Error Correction mechanism.
+            Default to True
+
+        Returns (str): String representation of the result of the code execution.
+
+        """
+
+        multiple: bool = isinstance(data_frame, list)
+
+        # Add save chart code
+        if self._save_charts:
+            code = add_save_chart(
+                code, self._prompt_id, self._save_charts_path, not self._verbose
+            )
+
+        # Get the code to run removing unsafe imports and df overwrites
+        code_to_run = self._clean_code(code)
+        self.last_code_executed = code_to_run
+        self.log(
+            f"""
+Code running:
+```
+{code_to_run}
+```"""
+        )
+
+        environment: dict = self._get_environment()
+
+        if multiple:
+            environment.update(
+                {f"df{i}": dataframe for i, dataframe in enumerate(data_frame, start=1)}
+            )
+        else:
+            environment["df"] = data_frame
+
+        # Redirect standard output to a StringIO buffer
+        with redirect_stdout(io.StringIO()) as output:
+            count = 0
+            while count < self._max_retries:
+                try:
+                    # Execute the code
+                    exec(code_to_run, environment)
+                    code = code_to_run
+                    break
+                except Exception as e:
+                    self.log(
+                        f"Error executing code (count: {count})", level=logging.WARNING
+                    )
+                    
+                    if not use_error_correction_framework:
+                        raise e
+
+                    count += 1
+
+                    code_to_run = self._retry_run_code(code, e, multiple)
+
+        captured_output = output.getvalue().strip()
+        if code.count("print(") > 1:
+            return captured_output
+
+        # Evaluate the last line and return its value or the captured output
+        # We do this because we want to return the right value and the right
+        # type of the value. For example, if the last line is `df.head()`, we
+        # want to return the head of the dataframe, not the captured output.
+        lines = code.strip().split("\n")
+        last_line = lines[-1].strip()
+
+        match = re.match(r"^print\((.*)\)$", last_line)
+        if match:
+            last_line = match.group(1)
+
+        try:
+            result = eval(last_line, environment)
+
+            # In some cases, the result is a tuple of values. For example, when
+            # the last line is `print("Hello", "World")`, the result is a tuple
+            # of two strings. In this case, we want to return a string
+            if isinstance(result, tuple):
+                result = " ".join([str(element) for element in result])
+
+            return result
+        except Exception:
+            return captured_output
+        
+    def generate_code(
+        self,
+        code: str,
+        data_frame: pd.DataFrame,
+        use_error_correction_framework: bool = True,
     ):
         """
         A method to execute the python code generated by LLMs to answer the question
@@ -695,14 +921,16 @@ Code running:
 
         captured_output = output.getvalue().strip()
        
+        last_df = None
         if "output" in environment:
             json = environment["output"]
             last_df = self.find_last_df(code, environment)
-            return (json, last_df)
+            return GenerateResult(last_df, json, None)
             #return environment["output"]
 
+        last_df = self.find_last_df(code, environment)
         if code.count("print(") > 1:
-            return captured_output
+            return GenerateResult(last_df, None, captured_output)
 
         # Evaluate the last line and return its value or the captured output
         # We do this because we want to return the right value and the right
@@ -710,7 +938,7 @@ Code running:
         # want to return the head of the dataframe, not the captured output.
         lines = code.strip().split("\n")
         last_line = lines[-1].strip()
-
+        
         match = re.match(r"^print\((.*)\)$", last_line)
         if match:
             last_line = match.group(1)
@@ -724,9 +952,9 @@ Code running:
             if isinstance(result, tuple):
                 result = " ".join([str(element) for element in result])
 
-            return result
+            return GenerateResult(last_df, None, result)
         except Exception:
-            return captured_output
+            return GenerateResult(last_df, None, captured_output)
 
     def find_last_df(self, code:str, environment:dict) -> pd.DataFrame:
         keys = list(environment.keys())
@@ -735,12 +963,12 @@ Code running:
         for line in lines:
             if "fig =" in line:
                 fig_line = line
-        
-        if fig_line is None:
-            return None
 
         for key in reversed(keys):
-            if key in fig_line:
+            if fig_line is not None and key in fig_line:
+                if isinstance(environment[key], pd.DataFrame):
+                    return environment[key]
+            else:
                 if isinstance(environment[key], pd.DataFrame):
                     return environment[key]
         return None

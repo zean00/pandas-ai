@@ -70,7 +70,7 @@ from .prompts.correct_multiples_prompt import CorrectMultipleDataframesErrorProm
 from .prompts.generate_python_code import GeneratePythonCodePrompt
 from .prompts.generate_response import GenerateResponsePrompt
 from .prompts.multiple_dataframes import MultipleDataframesPrompt
-
+import plotly.graph_objs as go
 
 def get_version():
     """
@@ -921,11 +921,10 @@ Code running:
 
         captured_output = output.getvalue().strip()
        
-        last_df = None
-        if "output" in environment:
-            json = environment["output"]
-            last_df = self.find_last_df(code, environment)
-            return GenerateResult(last_df, json, None)
+        last_df = self.find_last_df(code, environment)
+        fig = self.find_fig(code, environment)
+        if fig is not None:
+            return GenerateResult(last_df, fig.to_json(), None)
             #return environment["output"]
 
         last_df = self.find_last_df(code, environment)
@@ -958,22 +957,20 @@ Code running:
 
     def find_last_df(self, code:str, environment:dict) -> pd.DataFrame:
         keys = list(environment.keys())
-        fig_line = None
-        lines = code.strip().split("\n")
-        for line in lines:
-            if "fig =" in line:
-                fig_line = line
 
         for key in reversed(keys):
-            if fig_line is not None and key in fig_line:
-                if isinstance(environment[key], pd.DataFrame):
-                    return environment[key]
-            else:
                 if isinstance(environment[key], pd.DataFrame):
                     return environment[key]
         return None
-        
-        """Find the last dataframe accessed in the code"""
+    
+    def find_fig(self, code:str, environment:dict) -> go.Figure:
+        keys = list(environment.keys())
+
+        for k in reversed(keys):
+            if isinstance(environment[k], go.Figure):
+                return environment[k]
+        return None  
+
     def log(self, message: str):
         """Log a message"""
         self._logger.info(message)

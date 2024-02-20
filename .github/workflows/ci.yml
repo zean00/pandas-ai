@@ -7,9 +7,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
         python-version: ["3.9", "3.10", "3.11"]
 
     steps:
@@ -21,8 +22,24 @@ jobs:
       - name: Install poetry
         run: pip install poetry==1.4.2
       - name: Install dependencies
-        run: poetry install --all-extras
+        run: poetry install --all-extras --with dev
       - name: Lint with ruff
-        run: poetry run ruff pandasai examples
-      - name: Test with pytest
-        run: poetry run pytest
+        run: |
+          make format_diff
+      - name: Spellcheck
+        run: make spell_check
+      - name: Run tests
+        run: make tests
+      - name: Run code coverage
+        run: |
+          make coverage
+      - name: Report coverage
+        run: poetry run coverage report
+      - name: Upload coverage reports to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

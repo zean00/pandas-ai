@@ -39,3 +39,6 @@ exports/
 # vscode
 .vscode
 
+# coverage
+.coverage
+coverage.xml

@@ -1,3 +1,19 @@
+"""
+Constants used in the pandasai package.
+
+It includes Start & End Code tags, Whitelisted Python Packages and
+While List Builtin Methods.
+
+"""
+# Default directory to store chart if user doesn't provide any
+DEFAULT_CHART_DIRECTORY = "exports/charts"
+
+# Default permissions for files and directories
+DEFAULT_FILE_PERMISSIONS = 0o755
+
+# Token needed to invalidate the cache after breaking changes
+CACHE_TOKEN = "pandasai1"
+
 # List of Python builtin libraries that are added to the environment by default.
 WHITELISTED_BUILTINS = [
     "abs",
@@ -27,7 +43,6 @@ WHITELISTED_BUILTINS = [
     "help",
     "hex",
     "id",
-    "input",
     "int",
     "isinstance",
     "issubclass",
@@ -42,7 +57,6 @@ WHITELISTED_BUILTINS = [
     "next",
     "object",
     "oct",
-    "open",
     "ord",
     "pow",
     "print",
@@ -80,4 +94,5 @@ WHITELISTED_LIBRARIES = [
     "base64",
     "scipy",
     "streamlit",
+    "modin",
 ]

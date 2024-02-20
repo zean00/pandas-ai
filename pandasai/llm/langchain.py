@@ -1,5 +1,15 @@
-from pandasai.prompts.base import Prompt
+from pandasai.prompts.base import AbstractPrompt
+
 from .base import LLM
+
+"""Langchain LLM 
+
+This module is to run LLM using LangChain framework.
+
+Example:
+    Use below example to call LLM
+    >>> from pandasai.llm.langchain import LangchainLLm
+"""
 
 
 class LangchainLLM(LLM):
@@ -13,10 +23,10 @@ class LangchainLLM(LLM):
     def __init__(self, langchain_llm):
         self._langchain_llm = langchain_llm
 
-    def call(self, instruction: Prompt, value: str, suffix: str = "") -> str:
-        prompt = str(instruction) + value + suffix
-        return self._langchain_llm(prompt)
+    def call(self, instruction: AbstractPrompt, suffix: str = "") -> str:
+        prompt = instruction.to_string() + suffix
+        return self._langchain_llm.predict(prompt)
 
     @property
     def type(self) -> str:
-        return "langchain_" + self._langchain_llm._llm_type
+        return f"langchain_{self._langchain_llm._llm_type}"

@@ -3,6 +3,7 @@ import json
 import os
 import time
 import uuid
+import re
 from collections import defaultdict
 from typing import Any, List, TypedDict, Union
 
@@ -199,16 +200,18 @@ class QueryExecTracker:
             return {"type": result["type"], "value": df_dict}
 
         elif result["type"] == "plot":
-            with open(result["value"], "rb") as image_file:
-                image_data = image_file.read()
-            # Encode the image data to Base64
-            base64_image = (
-                f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
-            )
-            return {
-                "type": result["type"],
-                "value": base64_image,
-            }
+            if re.search("^(\/?[\w-]+\/)*[\w-]+\.[a-zA-Z]{2,4}$", result["value"]):
+                with open(result["value"], "rb") as image_file:
+                    image_data = image_file.read()
+                # Encode the image data to Base64
+                base64_image = (
+                    f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
+                )
+                return {
+                    "type": result["type"],
+                    "value": base64_image,
+                }
+            return result
         else:
             return result
 

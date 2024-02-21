@@ -215,7 +215,23 @@ Code running:
         if "result" not in environment:
             raise NoResultFoundError("No result returned")
 
-        return environment["result"]
+        result =  environment["result"]
+        if not isinstance(result["value"], pd.DataFrame):
+            last_df = self.find_last_df(environment)
+            if last_df is not None:
+                result["df"] = last_df
+        return result
+    
+    def find_last_df(self, environment: dict):
+        keys = list(environment.keys())
+
+        for key in reversed(keys):
+            if isinstance(environment[key], pd.DataFrame):
+                return environment[key]
+            if isinstance(environment[key], list):
+                if len(environment[key]) == 1 and isinstance(environment[key][0], pd.DataFrame):
+                    return environment[key][0]
+        return None
 
     def _get_originals(self, dfs):
         """

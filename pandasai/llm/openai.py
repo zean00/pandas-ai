@@ -47,6 +47,10 @@ class OpenAI(BaseOpenAI):
         "gpt-4-32k",
         "gpt-4-32k-0613",
         "gpt-4-turbo-preview",
+        "deepseek-coder-instruct",
+        "magicoder",
+        "mixtral-instruct",
+        "mistral-instruct"
     ]
     _supported_completion_models = ["gpt-3.5-turbo-instruct"]
 

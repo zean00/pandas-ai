@@ -30,4 +30,8 @@ Using pre loaded dataframe `df`, return the python code to get the answer to the
 """  # noqa: E501
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, today_date=date.today())
+        import os
+        today = os.environ.get("TODAY_DATE", None)
+        if today is None:
+            today = date.today()
+        super().__init__(**kwargs, today_date=today)

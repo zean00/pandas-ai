@@ -6,6 +6,10 @@ import pandas as pd
 
 from .base import Prompt
 
+import os
+today = os.environ.get("TODAY_DATE", None)
+if today is None:
+    today = date.today()
 
 class MultipleDataframesPrompt(Prompt):
     """Prompt to generate Python code"""
@@ -30,7 +34,7 @@ This is the metadata of the dataframe df{i}:
 
         self.text += self.instruction
         self.text = self.text.format(
-            today_date=date.today(),
+            today_date=today,
         )
 
     def __str__(self):

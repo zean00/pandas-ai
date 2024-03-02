@@ -45,4 +45,8 @@ Correct the python code and return a new python code (do not import anything) th
 """  # noqa: E501
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, today_date=date.today())
+        import os
+        today = os.environ.get("TODAY_DATE", None)
+        if today is None:
+            today = date.today()
+        super().__init__(**kwargs, today_date=today)

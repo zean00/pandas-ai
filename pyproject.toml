@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pandasai"
-version = "0.6.15"
+version = "0.6.16"
 description = "Pandas AI is a Python library that integrates generative artificial intelligence capabilities into Pandas, making dataframes conversational."
 authors = ["Gabriele Venturi"]
 license = "MIT"
@@ -12,12 +12,12 @@ python = ">=3.9,<3.9.7 || >3.9.7,<4.0"
 python-dotenv = "^1.0.0"
 pandas = "1.5.3"
 astor = "^0.8.1"
-openai = "^0.27.5"
+openai = "^1.30.4"
 ipython = "^8.13.1"
 matplotlib = "^3.7.1"
 google-generativeai = { version = "^0.1.0rc2", optional = true }
 google-cloud-aiplatform = { version = "^1.26.1", optional = true }
-langchain = { version = "^0.0.199", optional = true}
+langchain = { version = "^0.0.339", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
